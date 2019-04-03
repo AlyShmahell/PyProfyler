@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # "Not Profiled Yet" Message
     print(wrapped_profile)
     result = wrapped_profile()
-    # Profile Message Appears
+    # Profile Message, through __str__
     print(wrapped_profile)
     # Function Execution Result
     print(f"execution result: {result[10]}")

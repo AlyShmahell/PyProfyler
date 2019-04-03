@@ -35,57 +35,56 @@ class PyProfyler(object):
     """
     Memory Profyler Class
     """
-    def _get_elapsed_time(self, start):
+    def __get_elapsed_time(self, start):
         """
         An assistant helper function:
             calculates elapsed time.
         """
         return datetime.timedelta(time.time() - start)
-    def _get_process_memory(self):
+    def __get_process_memory(self):
         """
         An assistant helper function:
-            gets memory info and time instance.
+            assists in getting memory info.
         """
         meminfo = psutil.Process(os.getpid()).memory_info()
         return np.array([meminfo.rss, meminfo.vms, meminfo.shared])
-    def _format_bytes(self, bytes):
+    def __format_bytes(self, bytes):
         """
         An assistant helper function:
-            assists printing functions,
-            by removing white spaces after newlines.
+            assists in converting sizes to B, KB, MB, GB values.
         """
         memsize = (1, abs(bytes)) [abs(bytes)>0]
         units   = {3:"B", 6:"KB", 9:"MB", 12:"GB"}
         unit    = min(i for i in units.keys() if i > math.floor(np.log10(memsize)))
         return str(round(bytes/10** math.floor(np.log10(memsize)), 2)) + units[unit]
-    def _oneliner(self, x):
+    def __oneliner(self, x):
         """
         An assistant helper function:
-            assists printing functions,
+            assists in pretty printing,
             by removing white spaces after newlines.
         """
         return re.sub(r"\n\s*" , " " , x)
     def __init__(self, func, *args, **kwargs):
         """
         A main function:
-            performs execution -> (delayed)calculation -> presentation.
+            performs main functionality: wrapping execution -> formatting.
         """
         self.profiled   = False
         self.func = func
         self.args      = args
         self.kwargs    = kwargs
         def wrapper(self, *args, **kwargs):
-            stats      = self._get_process_memory()
+            stats      = self.__get_process_memory()
             starttime  = time.time()
             result     = self.func(*args, **kwargs)
-            timeperiod = self._get_elapsed_time(starttime)
-            stats      = self._get_process_memory() - stats
-            self.profile = self._oneliner(
+            timeperiod = self.__get_elapsed_time(starttime)
+            stats      = self.__get_process_memory() - stats
+            self.profile = self.__oneliner(
                                           f"""{Colors.GREEN}
                                               Profile: {self.func.__name__:>20} |
-                                              RSS:  {self._format_bytes(stats[0]):>08} | 
-                                              VMS:  {self._format_bytes(stats[1]):>08} | 
-                                              SHR:  {self._format_bytes(stats[2]):>08} | 
+                                              RSS:  {self.__format_bytes(stats[0]):>08} | 
+                                              VMS:  {self.__format_bytes(stats[1]):>08} | 
+                                              SHR:  {self.__format_bytes(stats[2]):>08} | 
                                               UpTime: {timeperiod} 
                                               {Colors.WHITE}"""
                                           )
@@ -99,13 +98,13 @@ class PyProfyler(object):
         """
         self.profiled = True
         return self.wrapper(self, *self.args, **self.kwargs)
-    def __str__(self, getter="__str__"):
+    def __str__(self):
         """
         A main function:
             makes the class printable.
         """
         if not self.profiled:
-            return self._oneliner(f"""{Colors.YELLOW} 
+            return self.__oneliner(f"""{Colors.YELLOW} 
                                       {self.func.__name__} 
                                       hasn't been executed yet. 
                                       {Colors.WHITE}""")
