@@ -1,6 +1,11 @@
 # PyProfyler
 a simple memory profiler for python programs.
 
+## Installation:
+```sh
+sudo pip3 install git+https://github.com/AlyShmahell/PyProfyler
+```
+
 ## Example:
 ```python
 from pyprofyler import PyProfyler
