@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
 	name='pyprofyler',
-	version='0.1.0',
+	version='1.0.0',
 	author='Aly Shmahell',
 	author_email='aly.shmahell@gmail.com',
 	description='a simple memory profiler for python programs.',
