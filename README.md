@@ -5,7 +5,10 @@ a simple memory profiler for python programs.
 ```sh
 sudo pip3 install git+https://github.com/AlyShmahell/PyProfyler
 ```
-
+or  
+```sh
+sudo pip3 install pyprofyler
+```
 ## Example:
 ```python
 from pyprofyler import PyProfyler
