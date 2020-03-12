@@ -12,7 +12,7 @@ setup(
     long_description_content_type='text/markdown',
 	packages=['pyprofyler'],
 	install_requires=[
-			  "psutil==5.6.1",
+			  "psutil==5.6.6",
 			  "cython==0.29.6",
 			  "numpy==1.16.2"
 			],
