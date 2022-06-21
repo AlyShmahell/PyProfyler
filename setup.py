@@ -14,7 +14,7 @@ setup(
 	install_requires=[
 			  "psutil==5.6.6",
 			  "cython==0.29.6",
-			  "numpy==1.16.2"
+			  "numpy==1.22.0"
 			],
 	classifiers=[
         "Programming Language :: Python :: 3",
