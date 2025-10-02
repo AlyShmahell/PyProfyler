@@ -53,7 +53,7 @@ class PyProfyler(object):
         An assistant helper function:
             assists in converting sizes to B, KB, MB, GB values.
         """
-        memsize = (1, abs(bytes)) [abs(bytes)>0]
+        memsize = (1, abs(bytes)) [int(abs(bytes)>0)]
         units   = {3:"B", 6:"KB", 9:"MB", 12:"GB"}
         unit    = min(i for i in units.keys() if i > math.floor(np.log10(memsize)))
         return str(round(bytes/10** math.floor(np.log10(memsize)), 2)) + units[unit]
