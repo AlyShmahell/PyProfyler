@@ -18,4 +18,4 @@ or
 sudo pip3 install pyprofyler
 ```
 ## Example:
-check [./example.py]('./example.py')
+check [example.py](https://github.com/AlyShmahell/PyProfyler/blob/master/example.py)
