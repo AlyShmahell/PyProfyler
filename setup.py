@@ -4,7 +4,6 @@ setup(
 	name='pyprofyler',
 	version='1.0.4',
 	author='Aly Shmahell',
-	author_email='aly.shmahell@gmail.com',
 	url='https://github.com/AlyShmahell/PyProfyler',
 	description='a simple memory profiler for python programs.',
 	long_description=(open('README.md', encoding='utf-8').read() if exists('README.md')
@@ -12,9 +11,8 @@ setup(
     long_description_content_type='text/markdown',
 	packages=['pyprofyler'],
 	install_requires=[
-			  "psutil==5.6.6",
-			  "cython==0.29.6",
-			  "numpy==1.16.2"
+			  "psutil==7.1.0",
+			  "numpy==2.3.3"
 			],
 	classifiers=[
         "Programming Language :: Python :: 3",
