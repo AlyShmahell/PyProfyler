@@ -1,120 +1,77 @@
-"""Memory Profyler"""
-import datetime
+import json
 import time
 import math
-import os
-import re
-import sys
-import psutil
 import inspect
-import numpy as np
-
-class ProfylerException(Exception):
-    """
-    Exception Class
-    """
-    __module__ = Exception.__module__
-    def __init__(self, error):
-        try:
-            line = sys.exc_info()[-1].tb_lineno
-        except AttributeError:
-            line = inspect.currentframe().f_back.f_lineno
-        self.args = f"{type(self).__name__} (line {line}): {error}",
-        sys.exit(self)
+import tracemalloc
 
 class Colors:
-    PURPLE    = '\033[95m'
-    BLUE      = '\033[94m'
-    GREEN     = '\033[92m'
     YELLOW    = '\033[93m'
     RED       = '\033[91m'
     WHITE     = '\033[0m'
-    UNDERLINE = '\033[4m'
 
-class PyProfyler(object):
-    """
-    Memory Profyler Class
-    """
-    def __get_elapsed_time(self, start):
-        """
-        An assistant helper function:
-            calculates elapsed time.
-        """
-        return datetime.timedelta(time.time() - start)
-    def __get_process_memory(self):
-        """
-        An assistant helper function:
-            assists in getting memory info.
-        """
-        meminfo = psutil.Process(os.getpid()).memory_info()
-        return np.array([meminfo.rss, meminfo.vms, meminfo.shared])
-    def __format_bytes(self, bytes):
-        """
-        An assistant helper function:
-            assists in converting sizes to B, KB, MB, GB values.
-        """
-        memsize = (1, abs(bytes)) [int(abs(bytes)>0)]
-        units   = {3:"B", 6:"KB", 9:"MB", 12:"GB"}
-        unit    = min(i for i in units.keys() if i > math.floor(np.log10(memsize)))
-        return str(round(bytes/10** math.floor(np.log10(memsize)), 2)) + units[unit]
-    def __oneliner(self, x):
-        """
-        An assistant helper function:
-            assists in pretty printing,
-            by removing white spaces after newlines.
-        """
-        return re.sub(r"\n\s*" , " " , x)
+class PyProfyler:
+    def sizeformat(self, bytes):
+        units = ["B", "KB", "MB", "GB"]
+        if bytes == 0:
+            return "0.0B"
+        i = int(math.floor(math.log(bytes, 1024)))
+        return f"{bytes / (1024 ** i):.2f}{units[i]}"
     def __init__(self, func, *args, **kwargs):
-        """
-        A main function:
-            performs main functionality: wrapping execution -> formatting.
-        """
-        self.profiled   = False
         self.func = func
-        self.args      = args
-        self.kwargs    = kwargs
-        def wrapper(self, *args, **kwargs):
-            stats      = self.__get_process_memory()
-            starttime  = time.time()
-            result     = self.func(*args, **kwargs)
-            timeperiod = self.__get_elapsed_time(starttime)
-            stats      = self.__get_process_memory() - stats
-            self.profile = self.__oneliner(
-                                          f"""{Colors.GREEN}
-                                              Profile: {self.func.__name__:>20} |
-                                              RSS:  {self.__format_bytes(stats[0]):>08} | 
-                                              VMS:  {self.__format_bytes(stats[1]):>08} | 
-                                              SHR:  {self.__format_bytes(stats[2]):>08} | 
-                                              UpTime: {timeperiod} 
-                                              {Colors.WHITE}"""
-                                          )
-            return result
-        self.wrapper = wrapper
-    def __call__(self):
-        """
-        A main function:
-            makes the class callable.
-            responsible for delayed execution.
-        """
+        self.args = args
+        self.kwargs = kwargs
+        self.profiled = False
+        self.profile = {}
+        self.memsamples = []
+    def trace_mem(self):
+        current, _ = tracemalloc.get_traced_memory()
+        self.memsamples.append(current)
+    def profileit(self, start_time):
+        if not self.memsamples:  # safeguard
+            self.memsamples.append(0)
+        mem_mean = sum(self.memsamples) / len(self.memsamples)
+        mem_peak = max(self.memsamples)
+        self.profile = {
+            'func': self.func.__name__,
+            'mem_mean': self.sizeformat(mem_mean),
+            'mem_peak': self.sizeformat(mem_peak),
+            'perfc': time.perf_counter() - start_time
+        }
         self.profiled = True
-        return self.wrapper(self, *self.args, **self.kwargs)
-    def __str__(self):
-        """
-        A main function:
-            makes the class printable.
-        """
-        if not self.profiled:
-            return self.__oneliner(f"""{Colors.YELLOW} 
-                                      {self.func.__name__} 
-                                      hasn't been executed yet. 
-                                      {Colors.WHITE}""")
+        tracemalloc.stop()
+    def __call__(self, *args, **kwargs):
+        call_args = args if args else self.args
+        call_kwargs = kwargs if kwargs else self.kwargs
+        tracemalloc.start()
+        start_time = time.perf_counter()
+        self.memsamples = []
+        if inspect.isgeneratorfunction(self.func):
+            def gen_wrapper():
+                for item in self.func(*call_args, **call_kwargs):
+                    self.trace_mem()
+                    yield item
+                self.profileit(start_time)
+            return gen_wrapper()
+        elif inspect.isasyncgenfunction(self.func):
+            async def async_gen_wrapper():
+                async for item in self.func(*call_args, **call_kwargs):
+                    self.trace_mem()
+                    yield item
+                self.profileit(start_time)
+            return async_gen_wrapper()
+        elif inspect.iscoroutinefunction(self.func):
+            async def coro_wrapper():
+                result = await self.func(*call_args, **call_kwargs)
+                self.trace_mem()
+                self.profileit(start_time)
+                return result
+            return coro_wrapper()
         else:
-            return self.profile
-    def __getitem__(self, key):
-        """
-        A main function:
-            makes the class subscriptable.
-        """
-        if key != "profile":
-            raise ProfylerException(f"{Colors.RED} Key Error. {Colors.WHITE}")
-        return self.__str__()
+            result = self.func(*call_args, **call_kwargs)
+            self.trace_mem()
+            self.profileit(start_time)
+            return result
+    def __str__(self):
+        if not self.profiled:
+            return f"{Colors.YELLOW}{self.func.__name__} hasn't been executed yet.{Colors.WHITE}"
+        return json.dumps(self.profile, indent=4)
